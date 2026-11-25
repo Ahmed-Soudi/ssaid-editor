@@ -20,7 +20,9 @@ public class MainActivity extends Activity {
  open.setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_OPEN_DOCUMENT);i.setType("*/*");i.addCategory(Intent.CATEGORY_OPENABLE);startActivityForResult(i,1);});
  save.setOnClickListener(v->{Intent i=new Intent(Intent.ACTION_CREATE_DOCUMENT);i.setType(binary?"application/octet-stream":"application/xml");i.addCategory(Intent.CATEGORY_OPENABLE);i.putExtra(Intent.EXTRA_TITLE,binary?"edited.abx":"edited.xml");startActivityForResult(i,2);});
  find.setOnClickListener(v->{String q=search.getText().toString(),s=editor.getText().toString();if(q.isEmpty())return;int p=s.indexOf(q,Math.min(next,s.length()));if(p<0)p=s.indexOf(q);if(p>=0){editor.requestFocus();editor.setSelection(p,p+q.length());next=p+q.length();}else toast("No match");});
+ if(Intent.ACTION_VIEW.equals(getIntent().getAction()) && getIntent().getData()!=null) load(getIntent().getData());
  }
+ void load(Uri uri){ Intent d=new Intent();d.setData(uri);onActivityResult(1,RESULT_OK,d); }
  void toast(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
  protected void onActivityResult(int r,int c,Intent d){super.onActivityResult(r,c,d);if(c!=RESULT_OK||d==null)return;try{if(r==1){try(InputStream in=getContentResolver().openInputStream(d.getData());ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buf=new byte[8192];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);byte[] data=out.toByteArray();if(data.length>=4&&data[0]==65&&data[1]==66&&data[2]==88&&data[3]==0){editor.setText(AbxReader.decode(data));binary=true;next=0;toast("ABX opened");return;}binary=false;editor.setText(new String(data,StandardCharsets.UTF_8));next=0;}}else if(r==2){byte[] output=binary?AbxWriter.encode(editor.getText().toString()):editor.getText().toString().getBytes(StandardCharsets.UTF_8);try(OutputStream out=getContentResolver().openOutputStream(d.getData(),"wt")){out.write(output);}toast("Saved");}}catch(Exception e){toast(e.toString());}}
 }
