@@ -39,7 +39,7 @@ public class MainActivity extends Activity {
  String quote(String s){return "'"+s.replace("'","'\\''")+"'";}
  byte[] readAll(InputStream in)throws IOException{try(ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1)out.write(b,0,n);return out.toByteArray();}}
  byte[] rootCommand(String command,byte[] input)throws Exception{
- Process p=new ProcessBuilder("su","-c",command).redirectErrorStream(false).start();
+ java.lang.Process p=new ProcessBuilder("su","-c",command).redirectErrorStream(false).start();
  java.util.concurrent.FutureTask<byte[]> errors=new java.util.concurrent.FutureTask<>(()->readAll(p.getErrorStream()));new Thread(errors).start();
  try{try(OutputStream out=p.getOutputStream()){if(input!=null)out.write(input);}
  byte[] result=readAll(p.getInputStream());int code=p.waitFor();byte[] err=errors.get();if(code!=0)throw new IOException("su exit "+code+": "+new String(err,StandardCharsets.UTF_8));return result;}finally{p.destroy();}
