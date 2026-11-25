@@ -13,6 +13,7 @@ public class MainActivity extends Activity {
  LinearLayout root=new LinearLayout(this);root.setOrientation(1);root.setPadding(16,32,16,16);
  LinearLayout bar=new LinearLayout(this);
  Button open=new Button(this);open.setText("Open");bar.addView(open);
+ Button overwrite=new Button(this);overwrite.setText("Save");bar.addView(overwrite);overwrite.setOnClickListener(v->saveOriginal());
  Button save=new Button(this);save.setText("Save as");bar.addView(save);root.addView(bar);
  search=new EditText(this);search.setSingleLine(true);search.setHint("Search XML");root.addView(search);
  Button find=new Button(this);find.setText("Find next");root.addView(find);
@@ -23,6 +24,16 @@ public class MainActivity extends Activity {
  if(Intent.ACTION_VIEW.equals(getIntent().getAction()) && getIntent().getData()!=null) load(getIntent().getData());
  }
  void load(Uri uri){ Intent d=new Intent();d.setData(uri);onActivityResult(1,RESULT_OK,d); }
+ void saveOriginal(){
+ if(file==null){toast("Open a document first");return;}
+ new AlertDialog.Builder(this).setTitle("Overwrite document?").setMessage("Save changes to the opened document.").setNegativeButton("Cancel",null).setPositiveButton("Save",(dialog,which)->{
+ try{
+ byte[] output=binary?AbxWriter.encode(editor.getText().toString()):editor.getText().toString().getBytes(StandardCharsets.UTF_8);
+ try(OutputStream out=getContentResolver().openOutputStream(file,"wt")){if(out==null)throw new IOException("Provider unavailable");out.write(output);}
+ toast("Saved original document");
+ }catch(Exception e){toast("Cannot save original: "+e.getMessage()+". Use Save As.");}
+ }).show();
+ }
  void toast(String s){Toast.makeText(this,s,Toast.LENGTH_LONG).show();}
- protected void onActivityResult(int r,int c,Intent d){super.onActivityResult(r,c,d);if(c!=RESULT_OK||d==null)return;try{if(r==1){try(InputStream in=getContentResolver().openInputStream(d.getData());ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buf=new byte[8192];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);byte[] data=out.toByteArray();if(data.length>=4&&data[0]==65&&data[1]==66&&data[2]==88&&data[3]==0){editor.setText(AbxReader.decode(data));binary=true;next=0;toast("ABX opened");return;}binary=false;editor.setText(new String(data,StandardCharsets.UTF_8));next=0;}}else if(r==2){byte[] output=binary?AbxWriter.encode(editor.getText().toString()):editor.getText().toString().getBytes(StandardCharsets.UTF_8);try(OutputStream out=getContentResolver().openOutputStream(d.getData(),"wt")){out.write(output);}toast("Saved");}}catch(Exception e){toast(e.toString());}}
+ protected void onActivityResult(int r,int c,Intent d){super.onActivityResult(r,c,d);if(c!=RESULT_OK||d==null)return;try{if(r==1){try(InputStream in=getContentResolver().openInputStream(d.getData());ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buf=new byte[8192];int n;while((n=in.read(buf))!=-1)out.write(buf,0,n);byte[] data=out.toByteArray();if(data.length>=4&&data[0]==65&&data[1]==66&&data[2]==88&&data[3]==0){editor.setText(AbxReader.decode(data));file=d.getData();binary=true;next=0;toast("ABX opened");return;}binary=false;editor.setText(new String(data,StandardCharsets.UTF_8));file=d.getData();next=0;}}else if(r==2){byte[] output=binary?AbxWriter.encode(editor.getText().toString()):editor.getText().toString().getBytes(StandardCharsets.UTF_8);try(OutputStream out=getContentResolver().openOutputStream(d.getData(),"wt")){out.write(output);}toast("Saved");}}catch(Exception e){toast(e.toString());}}
 }
